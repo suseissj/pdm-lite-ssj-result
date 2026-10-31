@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>설비 진동 추이</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --muted:#666; --a:#2563eb; --b:#ea580c; --alert:#dc2626; --grid:#e5e5e5; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111; --fg:#eee; --muted:#aaa; --a:#60a5fa; --b:#fb923c; --alert:#f87171; --grid:#333; }
+  }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,"Malgun Gothic",sans-serif; }
+  main { max-width:960px; margin:0 auto; padding:24px 16px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 16px; font-size:.95rem; }
+  .chart { position:relative; height:420px; }
+  .note { color:var(--muted); font-size:.9rem; margin-top:16px; line-height:1.6; }
+</style>
+</head>
+<body>
+<main>
+  <h1>설비 진동 추이 — 노이즈인가, 추세인가</h1>
+  <p class="sub">실습용 가상 데이터 · 2026-09-15 08:00~16:00, 20분 간격 · 진동(mm/s)</p>
+  <div class="chart"><canvas id="c"></canvas></div>
+  <p class="note">
+    점선 = 설비별 평상 범위 상한(평균 + 2표준편차, 표본 표준편차). 빨간 점 = 이상 후보.<br>
+    설비A 12:40의 3.5는 한 번 튀고 돌아온 <b>노이즈</b>, 설비B는 15:00부터 꾸준히 오르는 <b>추세</b>로, 정비 필요 시점은 15:00입니다.
+  </p>
+</main>
+<script>
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const labels = [];
+for (let m = 8 * 60; m <= 16 * 60; m += 20) labels.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
+const A = [0.99,1.05,0.92,0.93,1.05,1.0,0.93,0.96,0.93,0.96,1.06,1.0,1.1,0.9,3.5,1.0,1.04,0.94,1.06,1.06,1.02,1.03,0.99,0.93,1.03];
+const B = [0.94,1.05,1.03,1.03,1.05,1.0,1.05,1.01,1.01,0.96,1.02,1.01,1.04,1.04,1.06,1.05,1.08,1.1,1.12,1.09,1.0,1.3,1.7,2.2,2.9];
+const hiA = 2.10, hiB = 2.08;
+const pointStyle = (data, hi, color) => ({
+  pointBackgroundColor: data.map(v => v > hi ? css('--alert') : color),
+  pointRadius: data.map(v => v > hi ? 7 : 3),
+});
+new Chart(document.getElementById('c'), {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      { label: '설비A 프레스 메인모터', data: A, borderColor: css('--a'), ...pointStyle(A, hiA, css('--a')), tension: 0 },
+      { label: '설비B 용접로봇 감속기', data: B, borderColor: css('--b'), ...pointStyle(B, hiB, css('--b')), tension: 0 },
+      { label: '설비A 평상 범위 상한 2.10', data: labels.map(() => hiA), borderColor: css('--a'), borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0 },
+      { label: '설비B 평상 범위 상한 2.08', data: labels.map(() => hiB), borderColor: css('--b'), borderDash: [2, 3], borderWidth: 1.5, pointRadius: 0 },
+    ],
+  },
+  options: {
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { labels: { color: css('--fg') } } },
+    scales: {
+      x: { title: { display: true, text: '시각', color: css('--muted') }, ticks: { color: css('--muted') }, grid: { color: css('--grid') } },
+      y: { title: { display: true, text: '진동 (mm/s)', color: css('--muted') }, min: 0, ticks: { color: css('--muted') }, grid: { color: css('--grid') } },
+    },
+  },
+});
+</script>
+</body>
+</html>
